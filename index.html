@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cotizador Web</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
+.container { max-width: 680px; margin: 0 auto; background: white; border-radius: 16px; padding: 2rem; border: 1px solid #e5e5e5; }
+
+h1 { font-size: 22px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+.subtitle { font-size: 14px; color: #888; margin-bottom: 1.5rem; }
+
+.client-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
+.cfield { display: flex; flex-direction: column; gap: 4px; }
+.cfield label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 500; }
+.cfield input, .cfield select { font-size: 13px; padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 8px; background: white; color: #1a1a1a; outline: none; }
+.cfield input:focus, .cfield select:focus { border-color: #999; }
+
+.section-label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid #eee; }
+
+.divider { height: 1px; background: #eee; margin: 1.25rem 0; }
+
+.items-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1.5rem; }
+
+.item-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: white; border: 1px solid #e5e5e5; border-radius: 8px; cursor: pointer; transition: border-color .15s, background .15s; user-select: none; }
+.item-row:hover { border-color: #bbb; }
+.item-row.checked { border-color: #22a06b; background: #f0fdf4; }
+.item-row.base-item { cursor: default; background: #fafafa; border-style: dashed; }
+
+.item-check { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; border: 1.5px solid #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #22a06b; transition: all .15s; }
+.item-row.checked .item-check { background: #22a06b; border-color: #22a06b; color: white; }
+.item-row.checked .item-check::after { content: '✓'; }
+.item-row.base-item .item-check { background: #eee; border-color: #ddd; }
+.item-row.base-item .item-check::after { content: '✓'; color: #999; }
+
+.item-info { flex: 1; min-width: 0; }
+.item-name { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+.item-desc { font-size: 11px; color: #999; margin-top: 1px; line-height: 1.4; }
+.item-price { font-size: 13px; font-weight: 600; color: #1a1a1a; white-space: nowrap; }
+.item-row.base-item .item-price { color: #999; }
+
+.summary-box { background: #f8f8f6; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+.sum-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+.sum-row:last-child { border-bottom: none; }
+.sum-row .slabel { color: #888; }
+.sum-row .sval { font-weight: 500; color: #1a1a1a; }
+.sum-total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; padding-top: 10px; border-top: 2px solid #1a1a1a; }
+.sum-total .tlabel { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+.sum-total .tval { font-size: 24px; font-weight: 700; color: #22a06b; }
+.empty-msg { font-size: 13px; color: #bbb; padding: 8px 0; text-align: center; }
+
+.actions { display: flex; gap: 10px; margin-bottom: 8px; }
+.btn-primary { flex: 1; background: #1a1a1a; color: white; border: none; border-radius: 8px; padding: 11px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.btn-primary:hover { background: #333; }
+.btn-ghost { flex: 1; background: transparent; border: 1px solid #ddd; color: #888; border-radius: 8px; padding: 11px 16px; font-size: 13px; cursor: pointer; transition: all .15s; }
+.btn-ghost:hover { border-color: #bbb; color: #555; }
+
+.validity-note { font-size: 11px; color: #bbb; text-align: center; }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; padding: 2rem 1rem; overflow-y: auto; }
+.modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+.modal { background: white; border-radius: 16px; padding: 2rem; width: 100%; max-width: 600px; position: relative; margin: auto; }
+.modal-close { position: absolute; top: 16px; right: 16px; width: 30px; height: 30px; border-radius: 50%; background: #f0f0f0; border: none; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; color: #666; }
+.modal-close:hover { background: #e0e0e0; }
+
+.modal-top { border-bottom: 2px solid #1a1a1a; padding-bottom: 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: flex-start; }
+.modal-title { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+.modal-date { font-size: 12px; color: #999; margin-top: 3px; }
+.modal-ref { font-size: 20px; font-weight: 700; color: #1a1a1a; text-align: right; }
+.modal-ref-label { font-size: 11px; color: #999; text-align: right; }
+
+.modal-client { background: #f8f8f6; border-radius: 8px; padding: 12px 16px; margin-bottom: 1.25rem; }
+.modal-client-name { font-size: 17px; font-weight: 700; }
+.modal-client-rubro { font-size: 13px; color: #888; margin-top: 2px; }
+
+.modal-section { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.08em; margin: 1rem 0 8px; }
+
+.modal-line { display: flex; justify-content: space-between; font-size: 13px; padding: 7px 0; border-bottom: 1px solid #f0f0f0; }
+.modal-line:last-child { border-bottom: none; }
+.modal-line .mname { color: #444; }
+.modal-line .mprice { font-weight: 500; color: #1a1a1a; }
+.modal-line.base .mname { color: #999; }
+.modal-line.base .mprice { color: #999; }
+
+.modal-total { display: flex; justify-content: space-between; align-items: baseline; border-top: 2px solid #1a1a1a; padding-top: 12px; margin-top: 8px; }
+.modal-total .mtl { font-size: 15px; font-weight: 700; }
+.modal-total .mtp { font-size: 26px; font-weight: 800; color: #22a06b; }
+
+.modal-terms { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 1.25rem; }
+.term { text-align: center; background: #f8f8f6; border-radius: 8px; padding: 12px 8px; }
+.term-val { font-size: 18px; font-weight: 700; }
+.term-label { font-size: 11px; color: #888; margin-top: 2px; }
+
+.modal-notes { background: #f8f8f6; border-radius: 8px; padding: 12px 16px; margin-top: 1.25rem; }
+.modal-notes p { font-size: 12px; color: #666; line-height: 1.7; margin: 0; }
+
+.modal-footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.modal-brand { font-size: 13px; font-weight: 600; }
+.modal-brand-sub { font-size: 12px; color: #999; }
+.modal-actions { display: flex; gap: 8px; }
+.btn-copy { background: #1a1a1a; color: white; border: none; border-radius: 8px; padding: 9px 16px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-print { background: transparent; border: 1px solid #ddd; color: #666; border-radius: 8px; padding: 9px 16px; font-size: 12px; cursor: pointer; }
+.copied-ok { font-size: 12px; color: #22a06b; display: none; align-self: center; }
+
+@media (max-width: 500px) {
+  .client-grid { grid-template-columns: 1fr; }
+  .modal-terms { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Cotizador de proyecto web</h1>
+  <p class="subtitle">Tildá las funcionalidades que necesitás y el precio se calcula al instante.</p>
+
+  <div class="client-grid">
+    <div class="cfield"><label>Cliente / empresa</label><input type="text" id="inp-cliente" placeholder="Ej: Ferretería López"></div>
+    <div class="cfield"><label>Rubro</label><input type="text" id="inp-rubro" placeholder="Ej: Comercio minorista"></div>
+    <div class="cfield"><label>Fecha</label><input type="text" id="inp-fecha" readonly></div>
+    <div class="cfield"><label>Validez</label><select id="inp-validez"><option value="15">15 días</option><option value="30" selected>30 días</option><option value="60">60 días</option></select></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <p class="section-label">Base — siempre incluido</p>
+  <div class="items-list">
+    <div class="item-row base-item"><div class="item-check"></div><div class="item-info"><div class="item-name">Proyecto base</div><div class="item-desc">Configuración inicial, dominio de trabajo, comunicación y gestión del proyecto</div></div><div class="item-price">$150.000</div></div>
+    <div class="item-row base-item"><div class="item-check"></div><div class="item-info"><div class="item-name">Diseño a medida + adaptación mobile</div><div class="item-desc">Layout responsive, paleta de colores y tipografías según tu identidad</div></div><div class="item-price">incluido</div></div>
+    <div class="item-row base-item"><div class="item-check"></div><div class="item-info"><div class="item-name">Formulario de contacto / WhatsApp</div><div class="item-desc">Botón flotante de WhatsApp y formulario con notificaciones</div></div><div class="item-price">incluido</div></div>
+    <div class="item-row base-item"><div class="item-check"></div><div class="item-info"><div class="item-name">Google Analytics integrado</div><div class="item-desc">Seguimiento de visitas y comportamiento de usuarios</div></div><div class="item-price">incluido</div></div>
+  </div>
+
+  <p class="section-label">Contenido y diseño</p>
+  <div class="items-list" id="list-contenido"></div>
+  <p class="section-label">Funcionalidades técnicas</p>
+  <div class="items-list" id="list-tecnico"></div>
+  <p class="section-label">E-commerce y pagos</p>
+  <div class="items-list" id="list-ecommerce"></div>
+  <p class="section-label">IA y automatizaciones</p>
+  <div class="items-list" id="list-ia"></div>
+  <p class="section-label">SEO y performance</p>
+  <div class="items-list" id="list-seo"></div>
+
+  <div class="divider"></div>
+
+  <div class="summary-box">
+    <div id="sum-rows"><div class="sum-row"><span class="slabel">Proyecto base</span><span class="sval">$150.000</span></div></div>
+    <div id="sum-empty" class="empty-msg" style="display:none">Ninguna funcionalidad adicional seleccionada</div>
+    <div class="sum-total"><span class="tlabel">Total estimado</span><span class="tval" id="sum-total">$150.000</span></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-ghost" onclick="limpiar()">Limpiar selección</button>
+    <button class="btn-primary" onclick="abrirModal()">Ver cotización completa →</button>
+  </div>
+  <p class="validity-note" id="validity-note">Validez: 30 días desde la emisión</p>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)cerrarModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="cerrarModal()">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const BASE = 150000;
+const ITEMS = {
+  contenido: [
+    { id:'c1', name:'Copywriting orientado a conversión', desc:'Redacción profesional de todos los textos del sitio con foco en ventas', price:80000 },
+    { id:'c2', name:'Storytelling visual de marca', desc:'Narrativa visual con secciones hero, propuesta de valor y prueba social', price:60000 },
+    { id:'c3', name:'Animaciones y micro-interacciones', desc:'Transiciones suaves, apariciones al scroll y efectos hover', price:80000 },
+    { id:'c4', name:'Animaciones avanzadas / parallax', desc:'Scroll animations complejas, parallax y video background', price:120000 },
+    { id:'c5', name:'Hasta 6 páginas / secciones', desc:'Página principal + Nosotros + Servicios + Galería + Blog + Contacto', price:90000 },
+    { id:'c6', name:'Blog o sección de novedades', desc:'Sistema de artículos con categorías, etiquetas y buscador', price:70000 },
+    { id:'c7', name:'Galería de proyectos / portfolio', desc:'Grilla filtrable con lightbox para mostrar trabajos o productos', price:50000 },
+  ],
+  tecnico: [
+    { id:'t1', name:'Múltiples idiomas (i18n)', desc:'Español + inglés u otro idioma con selector de idioma', price:90000 },
+    { id:'t2', name:'Panel de administración de contenido', desc:'CMS simple para que el cliente actualice textos e imágenes sin código', price:120000 },
+    { id:'t3', name:'Formularios avanzados / multi-paso', desc:'Cotizadores, formularios condicionales o flujos de captación complejos', price:80000 },
+    { id:'t4', name:'Sistema de reservas / turnos', desc:'Calendario con disponibilidad, reserva online y confirmación por email', price:150000 },
+    { id:'t5', name:'Área de clientes / login', desc:'Registro, login y panel privado para usuarios registrados', price:180000 },
+    { id:'t6', name:'Optimización de velocidad (Core Web Vitals)', desc:'Carga menor a 2s, imágenes optimizadas, puntuación Google 90+', price:50000 },
+  ],
+  ecommerce: [
+    { id:'e1', name:'Catálogo de productos', desc:'Listado con filtros, búsqueda, variantes y ficha de producto', price:120000 },
+    { id:'e2', name:'Carrito y proceso de compra', desc:'Flujo completo de compra con carrito, datos de envío y confirmación', price:100000 },
+    { id:'e3', name:'Integración MercadoPago', desc:'Pago con tarjeta, transferencia y billeteras digitales vía MP', price:80000 },
+    { id:'e4', name:'Integración PayWay / otro gateway', desc:'Procesador de pagos alternativo o institucional', price:100000 },
+    { id:'e5', name:'Gestión de stock e inventario', desc:'Control de stock en tiempo real con alertas de bajo inventario', price:90000 },
+    { id:'e6', name:'Notificaciones de pedidos (email/WhatsApp)', desc:'Avisos automáticos al cliente y admin en cada etapa del pedido', price:60000 },
+  ],
+  ia: [
+    { id:'i1', name:'Chat con IA integrado', desc:'Asistente entrenado con la info del negocio para atender consultas 24/7', price:120000 },
+    { id:'i2', name:'Automatización de emails (nurturing)', desc:'Secuencias de bienvenida, seguimiento y recuperación con MailerLite', price:70000 },
+    { id:'i3', name:'Integración CRM', desc:'Conexión con HubSpot, Notion o Google Sheets para gestión de leads', price:90000 },
+    { id:'i4', name:'Dashboard analítico del negocio', desc:'Panel con métricas clave: ventas, visitas, leads y conversiones en tiempo real', price:100000 },
+    { id:'i5', name:'Integraciones API externas', desc:'Conexión con sistemas de facturación, logística, ERP o herramientas propias', price:150000 },
+    { id:'i6', name:'Automatizaciones de procesos (Zapier/Make)', desc:'Flujos automáticos entre herramientas: CRM, email, hojas de cálculo, etc.', price:80000 },
+  ],
+  seo: [
+    { id:'s1', name:'SEO básico on-page', desc:'Meta títulos, descripciones, estructura H1-H6 y URLs amigables', price:40000 },
+    { id:'s2', name:'SEO técnico avanzado', desc:'Schema markup, sitemap, robots.txt, velocidad y auditoría completa', price:80000 },
+    { id:'s3', name:'Pack de contenido SEO (5 artículos)', desc:'Investigación de keywords + 5 artículos optimizados para blog', price:90000 },
+    { id:'s4', name:'Soporte post-lanzamiento (30 días)', desc:'Correcciones, ajustes y consultas durante el primer mes', price:60000 },
+  ]
+};
+
+const selected = new Set();
+const fmt = n => '$' + Math.round(n).toLocaleString('es-AR');
+
+function renderList(containerId, items) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'item-row' + (selected.has(item.id) ? ' checked' : '');
+    row.innerHTML = `<div class="item-check"></div><div class="item-info"><div class="item-name">${item.name}</div><div class="item-desc">${item.desc}</div></div><div class="item-price">${fmt(item.price)}</div>`;
+    row.addEventListener('click', () => { selected.has(item.id) ? selected.delete(item.id) : selected.add(item.id); renderList(containerId, items); updateSummary(); });
+    el.appendChild(row);
+  });
+}
+
+function updateSummary() {
+  const rows = document.getElementById('sum-rows');
+  rows.innerHTML = `<div class="sum-row"><span class="slabel">Proyecto base</span><span class="sval">${fmt(BASE)}</span></div>`;
+  let total = BASE, hasItems = false;
+  Object.values(ITEMS).flat().forEach(item => {
+    if (selected.has(item.id)) { hasItems = true; total += item.price; rows.innerHTML += `<div class="sum-row"><span class="slabel">${item.name}</span><span class="sval">${fmt(item.price)}</span></div>`; }
+  });
+  document.getElementById('sum-empty').style.display = hasItems ? 'none' : 'block';
+  document.getElementById('sum-total').textContent = fmt(total);
+}
+
+function limpiar() { selected.clear(); Object.keys(ITEMS).forEach(k => renderList('list-'+k, ITEMS[k])); updateSummary(); }
+
+function getTotal() { return BASE + Object.values(ITEMS).flat().filter(i => selected.has(i.id)).reduce((s,i) => s+i.price, 0); }
+
+function abrirModal() {
+  const cliente = document.getElementById('inp-cliente').value || 'Cliente';
+  const rubro = document.getElementById('inp-rubro').value || '';
+  const fecha = document.getElementById('inp-fecha').value;
+  const validez = parseInt(document.getElementById('inp-validez').value);
+  const selItems = Object.values(ITEMS).flat().filter(i => selected.has(i.id));
+  const total = getTotal();
+  const ref = '#' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*9000)+1000);
+
+  const vencimiento = new Date();
+  vencimiento.setDate(vencimiento.getDate() + validez);
+  const vencStr = vencimiento.toLocaleDateString('es-AR', {day:'2-digit', month:'long', year:'numeric'});
+
+  let lineas = '';
+  selItems.forEach(i => { lineas += `<div class="modal-line"><span class="mname">${i.name}</span><span class="mprice">${fmt(i.price)}</span></div>`; });
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-top">
+      <div><div class="modal-title">Propuesta de desarrollo web</div><div class="modal-date">Emitida el ${fecha}</div></div>
+      <div><div class="modal-ref-label">Referencia</div><div class="modal-ref">${ref}</div></div>
+    </div>
+    <div class="modal-client">
+      <div class="modal-client-name">${cliente}</div>
+      ${rubro ? `<div class="modal-client-rubro">${rubro}</div>` : ''}
+    </div>
+    <div class="modal-section">Detalle de funcionalidades</div>
+    <div class="modal-line base"><span class="mname">Proyecto base (diseño responsive, WhatsApp + Analytics)</span><span class="mprice">${fmt(BASE)}</span></div>
+    ${lineas}
+    <div class="modal-total"><span class="mtl">Total estimado</span><span class="mtp">${fmt(total)}</span></div>
+    <div class="modal-terms">
+      <div class="term"><div class="term-val">50%</div><div class="term-label">Anticipo para iniciar</div></div>
+      <div class="term"><div class="term-val">50%</div><div class="term-label">Al entregar</div></div>
+      <div class="term"><div class="term-val">${validez} días</div><div class="term-label">Validez</div></div>
+    </div>
+    <div class="modal-notes"><p>· Precios no incluyen dominio ni hosting (aprox. $30.000–$80.000/año).<br>· Plazo estimado: 2 a 6 semanas según funcionalidades.<br>· Hasta 2 rondas de revisión por etapa.<br>· Valores en ARS, de referencia. Sujeto a revisión ante cambios de alcance.<br>· Válida hasta el ${vencStr}.</p></div>
+    <div class="modal-footer">
+      <div><div class="modal-brand">Tu nombre / empresa</div><div class="modal-brand-sub">Automatización e IA para pymes</div></div>
+      <div class="modal-actions">
+        <button class="btn-print" onclick="window.print()">Imprimir</button>
+        <button class="btn-copy" onclick="copiarTexto('${ref}','${cliente}','${rubro}','${fecha}','${vencStr}',${validez},${total})">Copiar texto</button>
+      </div>
+    </div>
+    <p class="copied-ok" id="copied-ok">Copiado al portapapeles ✓</p>
+  `;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function cerrarModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+function copiarTexto(ref, cliente, rubro, fecha, vencStr, validez, total) {
+  const selItems = Object.values(ITEMS).flat().filter(i => selected.has(i.id));
+  let lineas = `Proyecto base: ${fmt(BASE)}\n`;
+  selItems.forEach(i => { lineas += `${i.name}: ${fmt(i.price)}\n`; });
+  const txt = `PROPUESTA DE DESARROLLO WEB\nReferencia: ${ref}\n\nCliente: ${cliente}${rubro ? ' ('+rubro+')' : ''}\nFecha: ${fecha} | Válida hasta: ${vencStr}\n\n─── DETALLE ───────────────────────\n${lineas}─── TOTAL: ${fmt(total)} ────────────────\n\nCONDICIONES:\n• 50% anticipo para iniciar\n• 50% al entregar\n• Validez: ${validez} días\n\nNOTAS:\n• No incluye dominio ni hosting (~$30.000–$80.000/año)\n• Plazo: 2 a 6 semanas según funcionalidades\n• Hasta 2 rondas de revisión por etapa\n• Valores en ARS, sujetos a revisión ante cambios de alcance\n\nTu nombre / empresa\nAutomatización e IA para pymes`;
+  navigator.clipboard.writeText(txt).then(() => {
+    const el = document.getElementById('copied-ok');
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 2500);
+  });
+}
+
+document.getElementById('inp-validez').addEventListener('change', () => {
+  document.getElementById('validity-note').textContent = 'Validez: ' + document.getElementById('inp-validez').value + ' días desde la emisión';
+});
+document.getElementById('inp-fecha').value = new Date().toLocaleDateString('es-AR', {day:'2-digit', month:'long', year:'numeric'});
+Object.keys(ITEMS).forEach(k => renderList('list-'+k, ITEMS[k]));
+updateSummary();
+</script>
+</body>
+</html>
